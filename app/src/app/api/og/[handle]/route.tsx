@@ -63,7 +63,7 @@ export async function GET(_req: Request, { params }: RouteCtx) {
           />
           <div style={{ fontSize: 48, fontWeight: 800 }}>{name}</div>
           <div style={{ fontSize: 26, color: "#9c93b3", marginBottom: 16 }}>
-            @{card.handle}
+            {`@${card.handle}`}
           </div>
           {bio ? (
             <div
@@ -86,7 +86,7 @@ export async function GET(_req: Request, { params }: RouteCtx) {
               letterSpacing: 2,
             }}
           >
-            SLOPCARD.ORG / {card.handle.toUpperCase()}
+            {`SLOPCARD.ORG / ${card.handle.toUpperCase()}`}
           </div>
         </div>
       </div>

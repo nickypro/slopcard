@@ -5,6 +5,8 @@ services:
       dockerfile: Dockerfile
     container_name: slopcard
     restart: unless-stopped
+    # Run as host's dev user (uid 1000) so writes to the bind-mounted ./data work.
+    user: "1000:1000"
     ports:
       - "127.0.0.1:3000:3000"
     env_file:
