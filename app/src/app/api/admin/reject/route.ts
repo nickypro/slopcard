@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { isAdmin } from "@/lib/auth";
 import { deleteCard, getCard } from "@/lib/db";
+import { siteUrl } from "@/lib/urls";
 
 export const dynamic = "force-dynamic";
 
@@ -21,5 +22,5 @@ export async function POST(req: NextRequest) {
     );
   }
   deleteCard(handle);
-  return NextResponse.redirect(new URL("/admin", req.url));
+  return NextResponse.redirect(siteUrl("/admin"));
 }

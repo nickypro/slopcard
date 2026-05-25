@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { isAdmin } from "@/lib/auth";
 import { approveCard } from "@/lib/db";
+import { siteUrl } from "@/lib/urls";
 
 export const dynamic = "force-dynamic";
 
@@ -17,5 +18,5 @@ export async function POST(req: NextRequest) {
   if (!card) {
     return NextResponse.json({ error: "not found" }, { status: 404 });
   }
-  return NextResponse.redirect(new URL("/admin", req.url));
+  return NextResponse.redirect(siteUrl("/admin"));
 }
