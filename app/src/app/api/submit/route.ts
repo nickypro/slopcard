@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createPendingCard, getCard } from "@/lib/db";
+import { createPendingCard, getCard, setAccentColor } from "@/lib/db";
 import {
   isValidHandle,
   isValidSwapcardUrl,
   normalizeHandle,
 } from "@/lib/handle";
+import { extractAccentColor } from "@/lib/color";
 
 export const dynamic = "force-dynamic";
 
@@ -56,6 +57,12 @@ export async function POST(req: NextRequest) {
     swapcardUrl,
     submitterIp: ip,
   });
+
+  // Best-effort: extract accent color from avatar. Failures are silent.
+  if (avatarUrl) {
+    const accent = await extractAccentColor(avatarUrl).catch(() => null);
+    if (accent) setAccentColor(card.handle, accent.hex, accent.darkHex);
+  }
 
   return NextResponse.json({
     handle: card.handle,

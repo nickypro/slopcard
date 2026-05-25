@@ -1,3 +1,4 @@
+import type { CSSProperties } from "react";
 import type { Card } from "@/lib/db";
 
 interface Props {
@@ -25,8 +26,18 @@ export default function SlopCard({ card, stats }: Props) {
       typeof stats.following === "number" ||
       typeof stats.tweets === "number");
 
+  // If we extracted an accent color from the avatar, use it as CSS variable
+  // overrides so banner/border/CTA all pick it up.
+  const style: CSSProperties | undefined = card.accentColor
+    ? ({
+        ["--coral" as string]: card.accentColor,
+        ["--coral-strong" as string]:
+          card.accentColorDark || card.accentColor,
+      } as CSSProperties)
+    : undefined;
+
   return (
-    <article className="slopcard">
+    <article className="slopcard" style={style}>
       <header className="slopcard__banner">
         <span>SLOPCARD</span>
         <span>★</span>

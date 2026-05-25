@@ -20,6 +20,7 @@ export async function GET(_req: Request, { params }: RouteCtx) {
   const bio = card.description || "";
   const avatar =
     card.avatarUrl || `https://unavatar.io/twitter/${card.handle}`;
+  const accent = card.accentColor || "#e07a5f";
 
   return new ImageResponse(
     (
@@ -57,8 +58,7 @@ export async function GET(_req: Request, { params }: RouteCtx) {
               justifyContent: "space-between",
               alignItems: "center",
               padding: "16px 28px",
-              background:
-                "linear-gradient(90deg, #f0d97c 0%, #e07a5f 50%, #d4a93a 100%)",
+              background: `linear-gradient(90deg, #f0d97c 0%, ${accent} 50%, #d4a93a 100%)`,
               color: "#2e1f12",
               fontSize: 18,
               fontWeight: 700,
@@ -85,8 +85,7 @@ export async function GET(_req: Request, { params }: RouteCtx) {
               style={{
                 display: "flex",
                 padding: 4,
-                background:
-                  "linear-gradient(135deg, #d4a93a, #e07a5f, #81b29a)",
+                background: `linear-gradient(135deg, #d4a93a, ${accent}, #81b29a)`,
                 borderRadius: 999,
                 marginBottom: 22,
               }}

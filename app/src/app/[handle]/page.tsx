@@ -43,6 +43,11 @@ export default async function HandleProfile({ params }: Props) {
       <div className="card-wrap">
         <SlopCard card={card} />
       </div>
+      <p style={{ textAlign: "center", marginTop: "1.5rem" }}>
+        <a href="/" className="muted" style={{ fontSize: "0.9rem" }}>
+          ← make your own slopcard
+        </a>
+      </p>
     </main>
   );
 }

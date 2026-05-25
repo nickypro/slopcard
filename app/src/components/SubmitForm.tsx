@@ -104,11 +104,28 @@ export default function SubmitForm() {
       </div>
 
       <div className="row">
-        <label htmlFor="description">bio</label>
+        <div className="label-row">
+          <label htmlFor="description">bio</label>
+          <span
+            className="label-link"
+            style={{
+              color:
+                description.length >= 280
+                  ? "var(--danger)"
+                  : description.length >= 250
+                  ? "var(--pending)"
+                  : "var(--muted)",
+              cursor: "default",
+            }}
+          >
+            {description.length} / 280
+          </span>
+        </div>
         <textarea
           id="description"
           value={description}
-          onChange={(e) => setDescription(e.target.value)}
+          onChange={(e) => setDescription(e.target.value.slice(0, 280))}
+          maxLength={280}
         />
       </div>
 

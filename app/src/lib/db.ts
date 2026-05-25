@@ -28,6 +28,16 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS cards_status ON cards(status);
 `);
 
+// Migration: add accent_color columns if missing.
+const cols = db.prepare("PRAGMA table_info(cards)").all() as { name: string }[];
+const hasCol = (n: string) => cols.some((c) => c.name === n);
+if (!hasCol("accent_color")) {
+  db.exec("ALTER TABLE cards ADD COLUMN accent_color TEXT");
+}
+if (!hasCol("accent_color_dark")) {
+  db.exec("ALTER TABLE cards ADD COLUMN accent_color_dark TEXT");
+}
+
 // Seed cutesuscat once
 const seedExists = db
   .prepare("SELECT 1 FROM cards WHERE handle = ?")
@@ -61,6 +71,8 @@ export interface Card {
   createdAt: number;
   updatedAt: number;
   approvedAt: number | null;
+  accentColor: string | null;
+  accentColorDark: string | null;
 }
 
 interface CardRow {
@@ -75,6 +87,8 @@ interface CardRow {
   created_at: number;
   updated_at: number;
   approved_at: number | null;
+  accent_color: string | null;
+  accent_color_dark: string | null;
 }
 
 const toCard = (r: CardRow): Card => ({
@@ -89,6 +103,8 @@ const toCard = (r: CardRow): Card => ({
   createdAt: r.created_at,
   updatedAt: r.updated_at,
   approvedAt: r.approved_at,
+  accentColor: r.accent_color,
+  accentColorDark: r.accent_color_dark,
 });
 
 export function getCard(handle: string): Card | null {
@@ -190,6 +206,16 @@ export function deleteCard(handle: string): boolean {
     .prepare("DELETE FROM cards WHERE handle = ?")
     .run(handle.toLowerCase());
   return res.changes > 0;
+}
+
+export function setAccentColor(
+  handle: string,
+  hex: string | null,
+  darkHex: string | null
+): void {
+  db.prepare(
+    "UPDATE cards SET accent_color = ?, accent_color_dark = ? WHERE handle = ?"
+  ).run(hex, darkHex, handle.toLowerCase());
 }
 
 export default db;

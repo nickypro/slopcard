@@ -1,6 +1,12 @@
 import { notFound, redirect } from "next/navigation";
 import { isAdmin } from "@/lib/auth";
-import { approveCard, getCard, updateCardFields } from "@/lib/db";
+import {
+  approveCard,
+  getCard,
+  setAccentColor,
+  updateCardFields,
+} from "@/lib/db";
+import { extractAccentColor } from "@/lib/color";
 
 interface Props {
   params: Promise<{ handle: string }>;
@@ -17,9 +23,10 @@ export default async function AdminEditPage({ params }: Props) {
   async function saveAction(formData: FormData) {
     "use server";
     if (!(await isAdmin())) redirect("/admin/login");
+    const current = getCard(handle);
     const edits = {
       displayName: String(formData.get("displayName") || ""),
-      description: String(formData.get("description") || ""),
+      description: String(formData.get("description") || "").slice(0, 280),
       avatarUrl: String(formData.get("avatarUrl") || ""),
       swapcardUrl: String(formData.get("swapcardUrl") || ""),
     };
@@ -28,6 +35,11 @@ export default async function AdminEditPage({ params }: Props) {
       approveCard(handle, edits);
     } else {
       updateCardFields(handle, edits);
+    }
+    // Re-extract accent color if the avatar URL changed.
+    if (edits.avatarUrl && edits.avatarUrl !== current?.avatarUrl) {
+      const accent = await extractAccentColor(edits.avatarUrl).catch(() => null);
+      if (accent) setAccentColor(handle, accent.hex, accent.darkHex);
     }
     redirect("/admin");
   }

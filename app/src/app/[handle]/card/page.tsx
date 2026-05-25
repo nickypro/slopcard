@@ -17,14 +17,11 @@ export default async function CardView({ params }: Props) {
       <div className="card-wrap">
         <SlopCard card={card} />
       </div>
-      <div className="actions" style={{ justifyContent: "center" }}>
-        <a className="btn" href={card.swapcardUrl}>
-          open swapcard
+      <p style={{ textAlign: "center", marginTop: "1.5rem" }}>
+        <a href="/" className="muted" style={{ fontSize: "0.9rem" }}>
+          ← make your own slopcard
         </a>
-        <a className="btn ghost" href={`/${card.handle}`}>
-          permalink
-        </a>
-      </div>
+      </p>
     </main>
   );
 }
