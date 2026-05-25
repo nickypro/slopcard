@@ -3,10 +3,10 @@ import crypto from "crypto";
 // X / Twitter OAuth 2.0 (Authorization Code with PKCE).
 // Docs: https://developer.x.com/en/docs/authentication/oauth-2-0/authorization-code
 
-const AUTHORIZE_URL = "https://twitter.com/i/oauth2/authorize";
-const TOKEN_URL = "https://api.twitter.com/2/oauth2/token";
+const AUTHORIZE_URL = "https://x.com/i/oauth2/authorize";
+const TOKEN_URL = "https://api.x.com/2/oauth2/token";
 const USERS_ME_URL =
-  "https://api.twitter.com/2/users/me?user.fields=name,username,description,profile_image_url";
+  "https://api.x.com/2/users/me?user.fields=name,username,description,profile_image_url";
 
 export function isConfigured(): boolean {
   return !!(
