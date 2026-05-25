@@ -138,7 +138,17 @@ export default function SubmitForm() {
       </div>
 
       <div className="row">
-        <label htmlFor="swapcardUrl">swapcard url *</label>
+        <div className="label-row">
+          <label htmlFor="swapcardUrl">swapcard url *</label>
+          <a
+            className="label-link"
+            href="https://app.swapcard.com/event/eag-london/people/RXZlbnRWaWV3XzEyNzQyMDI="
+            target="_blank"
+            rel="noreferrer"
+          >
+            ↗ find your profile on swapcard by searching attendees
+          </a>
+        </div>
         <input
           id="swapcardUrl"
           type="url"
@@ -147,18 +157,6 @@ export default function SubmitForm() {
           onChange={(e) => setSwapcardUrl(e.target.value)}
           placeholder="https://app.swapcard.com/event/.../person/..."
         />
-        <p
-          className="muted"
-          style={{ fontSize: "0.8rem", marginTop: "0.4rem" }}
-        >
-          <a
-            href="https://app.swapcard.com/event/eag-london/people/RXZlbnRWaWV3XzEyNzQyMDI="
-            target="_blank"
-            rel="noreferrer"
-          >
-            find your profile on swapcard by searching attendees
-          </a>
-        </p>
       </div>
 
       <div className="actions">

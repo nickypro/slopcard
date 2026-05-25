@@ -96,6 +96,27 @@ label {
   font-weight: 600;
 }
 
+.label-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+.label-row label {
+  margin: 0;
+}
+.label-link {
+  font-size: 0.78rem;
+  color: var(--coral-strong);
+  text-transform: none;
+  letter-spacing: 0;
+  font-weight: 500;
+}
+.label-link:hover {
+  text-decoration: underline;
+}
+
 input[type="text"],
 input[type="url"],
 textarea {
@@ -204,8 +225,6 @@ button[disabled] {
   border-radius: 18px;
   padding: 0;
   position: relative;
-  /* Very slight rotation for the pinned-notecard feel; small enough not to bother readers. */
-  transform: rotate(-1deg);
   box-shadow:
     0 1px 2px rgba(46, 31, 18, 0.12),
     0 24px 50px -16px rgba(46, 31, 18, 0.35),
