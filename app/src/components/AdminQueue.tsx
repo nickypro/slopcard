@@ -62,14 +62,22 @@ function ApprovedRow({ card }: { card: Card }) {
     <div className="queue-row">
       <Avatar card={card} />
       <div className="queue-row__main">
-        <strong>{card.displayName || `@${card.handle}`}</strong>
+        <strong>
+          {card.displayName || `@${card.handle}`}{" "}
+          {!card.listed ? (
+            <span className="tag" style={{ marginLeft: "0.4rem" }}>
+              unlisted
+            </span>
+          ) : null}
+          {card.verifiedTwitterId ? (
+            <span className="tag approved" style={{ marginLeft: "0.4rem" }}>
+              ✓ X-verified
+            </span>
+          ) : null}
+        </strong>
         <small>
           <a href={`/${card.handle}`} target="_blank" rel="noreferrer">
             /{card.handle} ↗
-          </a>{" "}
-          ·{" "}
-          <a href={`/${card.handle}/card`} target="_blank" rel="noreferrer">
-            view card ↗
           </a>
         </small>
       </div>

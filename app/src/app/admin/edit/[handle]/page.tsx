@@ -4,6 +4,7 @@ import {
   approveCard,
   getCard,
   setAccentColor,
+  setListed,
   updateCardFields,
 } from "@/lib/db";
 import { extractAccentColor } from "@/lib/color";
@@ -36,6 +37,7 @@ export default async function AdminEditPage({ params }: Props) {
     } else {
       updateCardFields(handle, edits);
     }
+    setListed(handle, formData.get("listed") === "on");
     // Re-extract accent color if the avatar URL changed.
     if (edits.avatarUrl && edits.avatarUrl !== current?.avatarUrl) {
       const accent = await extractAccentColor(edits.avatarUrl).catch(() => null);
@@ -82,6 +84,31 @@ export default async function AdminEditPage({ params }: Props) {
             name="swapcardUrl"
             defaultValue={card.swapcardUrl}
           />
+        </div>
+        <div className="row">
+          <label
+            htmlFor="listed"
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "0.5rem",
+              textTransform: "none",
+              letterSpacing: 0,
+              fontSize: "0.92rem",
+              cursor: "pointer",
+              fontWeight: 500,
+              color: "var(--ink)",
+            }}
+          >
+            <input
+              id="listed"
+              type="checkbox"
+              name="listed"
+              defaultChecked={card.listed}
+              style={{ width: 16, height: 16, cursor: "pointer" }}
+            />
+            listed on the public grid at slopcard.org
+          </label>
         </div>
         <div className="actions">
           {card.status === "pending" ? (

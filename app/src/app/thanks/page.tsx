@@ -25,7 +25,7 @@ export default async function ThanksPage({ searchParams }: Props) {
         </p>
       </div>
       <p style={{ marginTop: "1.5rem" }}>
-        <a href="/">← submit another</a>
+        <a href="/submit">← submit another</a>
       </p>
     </main>
   );

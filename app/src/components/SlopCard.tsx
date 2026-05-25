@@ -82,7 +82,9 @@ export default function SlopCard({ card, stats }: Props) {
         </a>
       </div>
       <footer className="slopcard__footer">
-        slopcard.org / {card.handle}
+        <a href={`/${card.handle}`} className="slopcard__permalink">
+          slopcard.org / {card.handle}
+        </a>
       </footer>
     </article>
   );

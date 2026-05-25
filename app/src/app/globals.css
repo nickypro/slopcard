@@ -62,6 +62,32 @@ code {
   margin: 0 auto;
   padding: 2.5rem 1.25rem 5rem;
 }
+.container--wide {
+  max-width: 1200px;
+}
+
+.dashboard-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 2rem;
+}
+.dashboard-header .subtitle {
+  margin-bottom: 0;
+}
+
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+  gap: 1.75rem;
+  justify-items: center;
+}
+.card-grid__item {
+  width: 360px;
+  max-width: 100%;
+}
 
 .title {
   font-size: 2.25rem;
@@ -417,6 +443,14 @@ button[disabled] {
   font-variant: tabular-nums;
   letter-spacing: 0.06em;
   text-transform: uppercase;
+}
+.slopcard__permalink {
+  color: var(--muted);
+  text-decoration: none;
+}
+.slopcard__permalink:hover {
+  color: var(--ink-2);
+  text-decoration: underline;
 }
 
 /* ------------------------------------------------------------------- */

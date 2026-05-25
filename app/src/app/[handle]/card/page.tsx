@@ -18,7 +18,7 @@ export default async function CardView({ params }: Props) {
         <SlopCard card={card} />
       </div>
       <p style={{ textAlign: "center", marginTop: "1.5rem" }}>
-        <a href="/" className="muted" style={{ fontSize: "0.9rem" }}>
+        <a href="/submit" className="muted" style={{ fontSize: "0.9rem" }}>
           ← make your own slopcard
         </a>
       </p>

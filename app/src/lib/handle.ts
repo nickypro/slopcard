@@ -6,6 +6,7 @@ const RESERVED = new Set([
   "pending",
   "thanks",
   "card",
+  "submit",
   "_next",
   "favicon",
   "robots",

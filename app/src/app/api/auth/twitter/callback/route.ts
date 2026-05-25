@@ -6,7 +6,7 @@ export const dynamic = "force-dynamic";
 
 function bounce(req: NextRequest, error: string) {
   return NextResponse.redirect(
-    new URL(`/?auth_error=${encodeURIComponent(error)}`, req.url)
+    new URL(`/submit?auth_error=${encodeURIComponent(error)}`, req.url)
   );
 }
 
@@ -29,5 +29,5 @@ export async function GET(req: NextRequest) {
   if (!me) return bounce(req, "user_fetch_failed");
 
   await setUserSession(me.id, me.username);
-  return NextResponse.redirect(new URL("/?signed_in=1", req.url));
+  return NextResponse.redirect(new URL("/submit?signed_in=1", req.url));
 }

@@ -1,10 +1,49 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 interface MeResp {
   signedIn: boolean;
   twitterHandle?: string;
+}
+
+const DRAFT_KEY = "slopcard:draft:v1";
+
+interface Draft {
+  handle?: string;
+  displayName?: string;
+  description?: string;
+  avatarUrl?: string;
+  swapcardUrl?: string;
+  listed?: boolean;
+}
+
+function loadDraft(): Draft {
+  if (typeof window === "undefined") return {};
+  try {
+    const raw = window.localStorage.getItem(DRAFT_KEY);
+    if (!raw) return {};
+    const d = JSON.parse(raw) as Draft;
+    return d && typeof d === "object" ? d : {};
+  } catch {
+    return {};
+  }
+}
+function saveDraft(d: Draft) {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(DRAFT_KEY, JSON.stringify(d));
+  } catch {
+    /* quota / disabled — ignore */
+  }
+}
+function clearDraft() {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.removeItem(DRAFT_KEY);
+  } catch {
+    /* ignore */
+  }
 }
 
 export default function SubmitForm() {
@@ -14,12 +53,26 @@ export default function SubmitForm() {
   const [description, setDescription] = useState("");
   const [avatarUrl, setAvatarUrl] = useState("");
   const [swapcardUrl, setSwapcardUrl] = useState("");
+  const [listed, setListed] = useState(true);
   const [fetching, setFetching] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [verifiedAutoFetched, setVerifiedAutoFetched] = useState(false);
+  const draftHydrated = useRef(false);
 
-  // Load session and auto-fetch profile for verified users.
+  // Hydrate from localStorage on first mount, before /api/me settles.
+  useEffect(() => {
+    const d = loadDraft();
+    if (d.handle) setHandle(d.handle);
+    if (d.displayName) setDisplayName(d.displayName);
+    if (d.description) setDescription(d.description);
+    if (d.avatarUrl) setAvatarUrl(d.avatarUrl);
+    if (d.swapcardUrl) setSwapcardUrl(d.swapcardUrl);
+    if (typeof d.listed === "boolean") setListed(d.listed);
+    draftHydrated.current = true;
+  }, []);
+
+  // Load session. Verified handle overrides whatever the draft had.
   useEffect(() => {
     fetch("/api/me")
       .then((r) => r.json())
@@ -31,6 +84,19 @@ export default function SubmitForm() {
       })
       .catch(() => setMe({ signedIn: false }));
   }, []);
+
+  // Persist on every change (after hydration).
+  useEffect(() => {
+    if (!draftHydrated.current) return;
+    saveDraft({
+      handle: me?.signedIn ? undefined : handle,
+      displayName,
+      description,
+      avatarUrl,
+      swapcardUrl,
+      listed,
+    });
+  }, [handle, displayName, description, avatarUrl, swapcardUrl, listed, me]);
 
   useEffect(() => {
     if (
@@ -85,17 +151,21 @@ export default function SubmitForm() {
           description,
           avatarUrl,
           swapcardUrl,
+          listed,
         }),
       });
       const data = await res.json();
       if (!res.ok) {
         setError(data.error || "submit failed");
-      } else if (data.autoApproved) {
-        window.location.href = `/${encodeURIComponent(data.handle)}`;
       } else {
-        window.location.href = `/thanks?token=${encodeURIComponent(
-          data.token
-        )}&handle=${encodeURIComponent(data.handle)}`;
+        clearDraft();
+        if (data.autoApproved) {
+          window.location.href = `/${encodeURIComponent(data.handle)}`;
+        } else {
+          window.location.href = `/thanks?token=${encodeURIComponent(
+            data.token
+          )}&handle=${encodeURIComponent(data.handle)}`;
+        }
       }
     } catch {
       setError("network error submitting");
@@ -229,6 +299,38 @@ export default function SubmitForm() {
           onChange={(e) => setSwapcardUrl(e.target.value)}
           placeholder="https://app.swapcard.com/event/.../person/..."
         />
+      </div>
+
+      <div className="row">
+        <label
+          htmlFor="listed"
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "0.5rem",
+            textTransform: "none",
+            letterSpacing: 0,
+            fontSize: "0.92rem",
+            color: "var(--ink)",
+            cursor: "pointer",
+            fontWeight: 500,
+          }}
+        >
+          <input
+            id="listed"
+            type="checkbox"
+            checked={listed}
+            onChange={(e) => setListed(e.target.checked)}
+            style={{ width: 16, height: 16, cursor: "pointer" }}
+          />
+          show on the public grid at slopcard.org
+        </label>
+        <p
+          className="muted"
+          style={{ fontSize: "0.78rem", margin: "0.25rem 0 0 1.6rem" }}
+        >
+          uncheck to keep unlisted — the card still works at slopcard.org/{normHandle || "<handle>"}, it just won&apos;t appear on the front page.
+        </p>
       </div>
 
       <div className="actions">

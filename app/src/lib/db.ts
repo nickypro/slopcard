@@ -43,6 +43,9 @@ if (!hasCol("verified_twitter_id")) {
 if (!hasCol("verified_at")) {
   db.exec("ALTER TABLE cards ADD COLUMN verified_at INTEGER");
 }
+if (!hasCol("listed")) {
+  db.exec("ALTER TABLE cards ADD COLUMN listed INTEGER NOT NULL DEFAULT 1");
+}
 
 // Seed cutesuscat once
 const seedExists = db
@@ -81,6 +84,7 @@ export interface Card {
   accentColorDark: string | null;
   verifiedTwitterId: string | null;
   verifiedAt: number | null;
+  listed: boolean;
 }
 
 interface CardRow {
@@ -99,6 +103,7 @@ interface CardRow {
   accent_color_dark: string | null;
   verified_twitter_id: string | null;
   verified_at: number | null;
+  listed: number;
 }
 
 const toCard = (r: CardRow): Card => ({
@@ -117,6 +122,7 @@ const toCard = (r: CardRow): Card => ({
   accentColorDark: r.accent_color_dark,
   verifiedTwitterId: r.verified_twitter_id,
   verifiedAt: r.verified_at,
+  listed: r.listed !== 0,
 });
 
 export function getCard(handle: string): Card | null {
@@ -140,6 +146,22 @@ export function listCardsByStatus(status: CardStatus): Card[] {
   return rows.map(toCard);
 }
 
+export function listListedApprovedCards(): Card[] {
+  const rows = db
+    .prepare(
+      "SELECT * FROM cards WHERE status = 'approved' AND listed = 1 ORDER BY COALESCE(approved_at, created_at) DESC"
+    )
+    .all() as CardRow[];
+  return rows.map(toCard);
+}
+
+export function setListed(handle: string, listed: boolean): void {
+  db.prepare("UPDATE cards SET listed = ? WHERE handle = ?").run(
+    listed ? 1 : 0,
+    handle.toLowerCase()
+  );
+}
+
 export interface SubmitInput {
   handle: string;
   displayName: string;
@@ -147,6 +169,7 @@ export interface SubmitInput {
   avatarUrl: string;
   swapcardUrl: string;
   submitterIp: string | null;
+  listed: boolean;
 }
 
 export function createPendingCard(input: SubmitInput): Card {
@@ -154,8 +177,8 @@ export function createPendingCard(input: SubmitInput): Card {
   const handle = input.handle.toLowerCase();
   const token = crypto.randomBytes(16).toString("hex");
   db.prepare(
-    `INSERT INTO cards (handle, display_name, description, avatar_url, swapcard_url, status, preview_token, submitter_ip, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, 'pending', ?, ?, ?, ?)`
+    `INSERT INTO cards (handle, display_name, description, avatar_url, swapcard_url, status, preview_token, submitter_ip, listed, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, 'pending', ?, ?, ?, ?, ?)`
   ).run(
     handle,
     input.displayName,
@@ -164,6 +187,7 @@ export function createPendingCard(input: SubmitInput): Card {
     input.swapcardUrl,
     token,
     input.submitterIp,
+    input.listed ? 1 : 0,
     now,
     now
   );
@@ -247,8 +271,8 @@ export function createVerifiedApprovedCard(
     `INSERT INTO cards (handle, display_name, description, avatar_url, swapcard_url,
                         status, preview_token, submitter_ip,
                         verified_twitter_id, verified_at,
-                        created_at, updated_at, approved_at)
-     VALUES (?, ?, ?, ?, ?, 'approved', ?, ?, ?, ?, ?, ?, ?)`
+                        listed, created_at, updated_at, approved_at)
+     VALUES (?, ?, ?, ?, ?, 'approved', ?, ?, ?, ?, ?, ?, ?, ?)`
   ).run(
     handle,
     input.displayName,
@@ -259,6 +283,7 @@ export function createVerifiedApprovedCard(
     input.submitterIp,
     input.twitterId,
     now,
+    input.listed ? 1 : 0,
     now,
     now,
     now
