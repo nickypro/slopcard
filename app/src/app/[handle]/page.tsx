@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
+import SlopCard from "@/components/SlopCard";
 import { getCard } from "@/lib/db";
 import { normalizeHandle } from "@/lib/handle";
 
@@ -32,26 +33,16 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
-export default async function HandleRedirect({ params }: Props) {
+export default async function HandleProfile({ params }: Props) {
   const { handle } = await params;
   const card = getCard(normalizeHandle(handle));
   if (!card || card.status !== "approved") notFound();
 
-  const target = card.swapcardUrl;
   return (
     <main className="container">
-      <p className="muted">redirecting to swapcard…</p>
-      <p>
-        <a href={target}>{target}</a>
-      </p>
-      <script
-        dangerouslySetInnerHTML={{
-          __html: `window.location.replace(${JSON.stringify(target)})`,
-        }}
-      />
-      <noscript>
-        <meta httpEquiv="refresh" content={`0; url=${target}`} />
-      </noscript>
+      <div className="card-wrap">
+        <SlopCard card={card} />
+      </div>
     </main>
   );
 }
