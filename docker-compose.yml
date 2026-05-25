@@ -1,0 +1,17 @@
+services:
+  slopcard:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: slopcard
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:3000:3000"
+    env_file:
+      - .env
+    environment:
+      PORT: "3000"
+      HOSTNAME: "0.0.0.0"
+      DATA_DIR: "/app/data"
+    volumes:
+      - ./data:/app/data
