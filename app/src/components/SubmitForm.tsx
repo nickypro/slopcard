@@ -1,8 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+
+interface MeResp {
+  signedIn: boolean;
+  twitterHandle?: string;
+}
 
 export default function SubmitForm() {
+  const [me, setMe] = useState<MeResp | null>(null);
   const [handle, setHandle] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [description, setDescription] = useState("");
@@ -11,17 +17,45 @@ export default function SubmitForm() {
   const [fetching, setFetching] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [verifiedAutoFetched, setVerifiedAutoFetched] = useState(false);
 
-  const normHandle = handle.replace(/^@/, "").trim();
+  // Load session and auto-fetch profile for verified users.
+  useEffect(() => {
+    fetch("/api/me")
+      .then((r) => r.json())
+      .then((data: MeResp) => {
+        setMe(data);
+        if (data.signedIn && data.twitterHandle) {
+          setHandle(data.twitterHandle);
+        }
+      })
+      .catch(() => setMe({ signedIn: false }));
+  }, []);
 
-  async function fetchProfile() {
-    if (!normHandle) return;
+  useEffect(() => {
+    if (
+      me?.signedIn &&
+      me.twitterHandle &&
+      !verifiedAutoFetched &&
+      !displayName &&
+      !description &&
+      !avatarUrl
+    ) {
+      setVerifiedAutoFetched(true);
+      doFetch(me.twitterHandle);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [me, verifiedAutoFetched]);
+
+  const verifiedHandle = me?.signedIn ? me.twitterHandle : null;
+  const normHandle = (verifiedHandle || handle.replace(/^@/, "")).trim();
+
+  async function doFetch(h: string) {
+    if (!h) return;
     setFetching(true);
     setError(null);
     try {
-      const res = await fetch(
-        `/api/fetch?h=${encodeURIComponent(normHandle)}`
-      );
+      const res = await fetch(`/api/fetch?h=${encodeURIComponent(h)}`);
       const data = await res.json();
       if (!res.ok) {
         setError(data.error || "fetch failed");
@@ -56,6 +90,8 @@ export default function SubmitForm() {
       const data = await res.json();
       if (!res.ok) {
         setError(data.error || "submit failed");
+      } else if (data.autoApproved) {
+        window.location.href = `/${encodeURIComponent(data.handle)}`;
       } else {
         window.location.href = `/thanks?token=${encodeURIComponent(
           data.token
@@ -72,25 +108,44 @@ export default function SubmitForm() {
     <form onSubmit={submit}>
       <div className="row">
         <label htmlFor="handle">twitter handle</label>
-        <div style={{ display: "flex", gap: "0.5rem" }}>
-          <input
-            id="handle"
-            type="text"
-            placeholder="cutesuscat"
-            value={handle}
-            onChange={(e) => setHandle(e.target.value)}
-            autoComplete="off"
-          />
-          <button
-            type="button"
-            className="ghost"
-            onClick={fetchProfile}
-            disabled={!normHandle || fetching}
-            style={{ flexShrink: 0 }}
+        {verifiedHandle ? (
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "0.5rem",
+              background: "var(--paper-2)",
+              border: "1px solid var(--line-strong)",
+              borderRadius: 8,
+              padding: "0.65rem 0.85rem",
+            }}
           >
-            {fetching ? "fetching…" : "fetch"}
-          </button>
-        </div>
+            <strong>@{verifiedHandle}</strong>
+            <span className="tag approved" style={{ marginLeft: "auto" }}>
+              ✓ verified — auto-approve
+            </span>
+          </div>
+        ) : (
+          <div style={{ display: "flex", gap: "0.5rem" }}>
+            <input
+              id="handle"
+              type="text"
+              placeholder="cutesuscat"
+              value={handle}
+              onChange={(e) => setHandle(e.target.value)}
+              autoComplete="off"
+            />
+            <button
+              type="button"
+              className="ghost"
+              onClick={() => doFetch(handle.replace(/^@/, "").trim())}
+              disabled={!handle.replace(/^@/, "").trim() || fetching}
+              style={{ flexShrink: 0 }}
+            >
+              {fetching ? "fetching…" : "fetch"}
+            </button>
+          </div>
+        )}
       </div>
 
       <div className="row">
@@ -181,7 +236,11 @@ export default function SubmitForm() {
           type="submit"
           disabled={submitting || !normHandle || !swapcardUrl}
         >
-          {submitting ? "submitting…" : "submit for review"}
+          {submitting
+            ? "submitting…"
+            : verifiedHandle
+            ? "publish my slopcard"
+            : "submit for review"}
         </button>
       </div>
 

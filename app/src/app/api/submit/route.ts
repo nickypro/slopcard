@@ -1,11 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createPendingCard, getCard, setAccentColor } from "@/lib/db";
+import {
+  createPendingCard,
+  createVerifiedApprovedCard,
+  getCard,
+  setAccentColor,
+} from "@/lib/db";
 import {
   isValidHandle,
   isValidSwapcardUrl,
   normalizeHandle,
 } from "@/lib/handle";
 import { extractAccentColor } from "@/lib/color";
+import { getUserSession } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
 
@@ -17,11 +23,26 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "invalid json" }, { status: 400 });
   }
 
+  const session = await getUserSession();
   const handle = normalizeHandle(String(body.handle || ""));
+
   if (!isValidHandle(handle)) {
     return NextResponse.json(
       { error: "invalid handle (1–15 chars, A–Z 0–9 _ only, not reserved)" },
       { status: 400 }
+    );
+  }
+
+  // If the user is signed in via X, the submitted handle must match the
+  // verified one. Stops drive-by squatting using the verified bypass.
+  const isVerifiedForHandle =
+    session?.twitterHandle.toLowerCase() === handle.toLowerCase();
+  if (session && !isVerifiedForHandle) {
+    return NextResponse.json(
+      {
+        error: `you're signed in as @${session.twitterHandle}; you can only submit your own handle. sign out to submit someone else's.`,
+      },
+      { status: 403 }
     );
   }
 
@@ -49,16 +70,25 @@ export async function POST(req: NextRequest) {
     req.headers.get("x-real-ip") ||
     null;
 
-  const card = createPendingCard({
-    handle,
-    displayName,
-    description,
-    avatarUrl,
-    swapcardUrl,
-    submitterIp: ip,
-  });
+  const card = isVerifiedForHandle && session
+    ? createVerifiedApprovedCard({
+        handle,
+        displayName,
+        description,
+        avatarUrl,
+        swapcardUrl,
+        submitterIp: ip,
+        twitterId: session.twitterId,
+      })
+    : createPendingCard({
+        handle,
+        displayName,
+        description,
+        avatarUrl,
+        swapcardUrl,
+        submitterIp: ip,
+      });
 
-  // Best-effort: extract accent color from avatar. Failures are silent.
   if (avatarUrl) {
     const accent = await extractAccentColor(avatarUrl).catch(() => null);
     if (accent) setAccentColor(card.handle, accent.hex, accent.darkHex);
@@ -67,5 +97,6 @@ export async function POST(req: NextRequest) {
   return NextResponse.json({
     handle: card.handle,
     token: card.previewToken,
+    autoApproved: card.status === "approved",
   });
 }

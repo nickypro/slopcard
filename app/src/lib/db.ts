@@ -37,6 +37,12 @@ if (!hasCol("accent_color")) {
 if (!hasCol("accent_color_dark")) {
   db.exec("ALTER TABLE cards ADD COLUMN accent_color_dark TEXT");
 }
+if (!hasCol("verified_twitter_id")) {
+  db.exec("ALTER TABLE cards ADD COLUMN verified_twitter_id TEXT");
+}
+if (!hasCol("verified_at")) {
+  db.exec("ALTER TABLE cards ADD COLUMN verified_at INTEGER");
+}
 
 // Seed cutesuscat once
 const seedExists = db
@@ -73,6 +79,8 @@ export interface Card {
   approvedAt: number | null;
   accentColor: string | null;
   accentColorDark: string | null;
+  verifiedTwitterId: string | null;
+  verifiedAt: number | null;
 }
 
 interface CardRow {
@@ -89,6 +97,8 @@ interface CardRow {
   approved_at: number | null;
   accent_color: string | null;
   accent_color_dark: string | null;
+  verified_twitter_id: string | null;
+  verified_at: number | null;
 }
 
 const toCard = (r: CardRow): Card => ({
@@ -105,6 +115,8 @@ const toCard = (r: CardRow): Card => ({
   approvedAt: r.approved_at,
   accentColor: r.accent_color,
   accentColorDark: r.accent_color_dark,
+  verifiedTwitterId: r.verified_twitter_id,
+  verifiedAt: r.verified_at,
 });
 
 export function getCard(handle: string): Card | null {
@@ -216,6 +228,42 @@ export function setAccentColor(
   db.prepare(
     "UPDATE cards SET accent_color = ?, accent_color_dark = ? WHERE handle = ?"
   ).run(hex, darkHex, handle.toLowerCase());
+}
+
+export function setVerified(handle: string, twitterId: string): void {
+  const now = Date.now();
+  db.prepare(
+    "UPDATE cards SET verified_twitter_id = ?, verified_at = ? WHERE handle = ?"
+  ).run(twitterId, now, handle.toLowerCase());
+}
+
+export function createVerifiedApprovedCard(
+  input: SubmitInput & { twitterId: string }
+): Card {
+  const now = Date.now();
+  const handle = input.handle.toLowerCase();
+  const token = crypto.randomBytes(16).toString("hex");
+  db.prepare(
+    `INSERT INTO cards (handle, display_name, description, avatar_url, swapcard_url,
+                        status, preview_token, submitter_ip,
+                        verified_twitter_id, verified_at,
+                        created_at, updated_at, approved_at)
+     VALUES (?, ?, ?, ?, ?, 'approved', ?, ?, ?, ?, ?, ?, ?)`
+  ).run(
+    handle,
+    input.displayName,
+    input.description,
+    input.avatarUrl,
+    input.swapcardUrl,
+    token,
+    input.submitterIp,
+    input.twitterId,
+    now,
+    now,
+    now,
+    now
+  );
+  return getCard(handle)!;
 }
 
 export default db;
