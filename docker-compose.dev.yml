@@ -1,0 +1,47 @@
+# Development override. Runs `next dev` with hot reload, bound to :3001 on host
+# so prod (which holds :3000) can keep running side-by-side.
+#
+# Usage:
+#   docker compose -f docker-compose.dev.yml up        # foreground, logs visible
+#   docker compose -f docker-compose.dev.yml up -d     # background
+#   docker compose -f docker-compose.dev.yml logs -f
+#   docker compose -f docker-compose.dev.yml down
+#
+# First run installs deps to ./app/node_modules on host (~60s). Subsequent
+# runs reuse them. Code changes hot-reload in the browser.
+#
+# View at: http://127.0.0.1:3001 on the host, or from your laptop:
+#   ssh -L 3001:127.0.0.1:3001 <user>@slopcard.org
+#   then open http://localhost:3001
+#
+# node_modules + .next live in ./app/ on host (both git-ignored).
+
+services:
+  slopcard-dev:
+    image: node:22-bookworm
+    container_name: slopcard-dev
+    working_dir: /app
+    command:
+      - sh
+      - -c
+      - |
+        if [ ! -d node_modules/next ]; then
+          echo '>> installing deps (one-time)'
+          npm install
+        fi
+        echo '>> starting next dev on 3000'
+        exec npx next dev -p 3000 -H 0.0.0.0
+    user: "1000:1000"
+    ports:
+      - "127.0.0.1:3001:3000"
+    env_file:
+      - .env
+    environment:
+      NODE_ENV: development
+      DATA_DIR: /app/data
+      # Make file watching reliable on bind-mounted volumes.
+      WATCHPACK_POLLING: "true"
+      CHOKIDAR_USEPOLLING: "true"
+    volumes:
+      - ./app:/app
+      - ./data:/app/data

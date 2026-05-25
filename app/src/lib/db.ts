@@ -47,6 +47,24 @@ if (!hasCol("listed")) {
   db.exec("ALTER TABLE cards ADD COLUMN listed INTEGER NOT NULL DEFAULT 1");
 }
 
+// Append-only audit log. Never updated, only inserted. Captures every
+// mutation to a card with full before/after snapshots so deleted data isn't
+// lost and changes are auditable. Querying for "current state" stays on the
+// `cards` table — this is only read for history.
+db.exec(`
+  CREATE TABLE IF NOT EXISTS card_events (
+    id           INTEGER PRIMARY KEY AUTOINCREMENT,
+    ts           INTEGER NOT NULL,
+    handle       TEXT NOT NULL,
+    action       TEXT NOT NULL,   -- create | create_verified | update | approve | delete
+    actor        TEXT NOT NULL,   -- anon:<ip> | verified:<twitter_id> | admin
+    before_json  TEXT,            -- snapshot of card BEFORE the action (NULL for creates)
+    after_json   TEXT             -- snapshot of card AFTER the action (NULL for deletes)
+  );
+  CREATE INDEX IF NOT EXISTS card_events_handle ON card_events(handle);
+  CREATE INDEX IF NOT EXISTS card_events_ts ON card_events(ts);
+`);
+
 // Seed cutesuscat once
 const seedExists = db
   .prepare("SELECT 1 FROM cards WHERE handle = ?")
@@ -125,6 +143,68 @@ const toCard = (r: CardRow): Card => ({
   listed: r.listed !== 0,
 });
 
+export type CardEventAction =
+  | "create"
+  | "create_verified"
+  | "update"
+  | "approve"
+  | "delete";
+
+export interface CardEvent {
+  id: number;
+  ts: number;
+  handle: string;
+  action: CardEventAction;
+  actor: string;
+  before: Card | null;
+  after: Card | null;
+}
+
+function logEvent(
+  handle: string,
+  action: CardEventAction,
+  actor: string,
+  before: Card | null,
+  after: Card | null
+): void {
+  db.prepare(
+    `INSERT INTO card_events (ts, handle, action, actor, before_json, after_json)
+     VALUES (?, ?, ?, ?, ?, ?)`
+  ).run(
+    Date.now(),
+    handle.toLowerCase(),
+    action,
+    actor,
+    before ? JSON.stringify(before) : null,
+    after ? JSON.stringify(after) : null
+  );
+}
+
+export function listEventsForHandle(handle: string): CardEvent[] {
+  const rows = db
+    .prepare(
+      "SELECT id, ts, handle, action, actor, before_json, after_json FROM card_events WHERE handle = ? ORDER BY id ASC"
+    )
+    .all(handle.toLowerCase()) as {
+    id: number;
+    ts: number;
+    handle: string;
+    action: CardEventAction;
+    actor: string;
+    before_json: string | null;
+    after_json: string | null;
+  }[];
+  return rows.map((r) => ({
+    id: r.id,
+    ts: r.ts,
+    handle: r.handle,
+    action: r.action,
+    actor: r.actor,
+    before: r.before_json ? (JSON.parse(r.before_json) as Card) : null,
+    after: r.after_json ? (JSON.parse(r.after_json) as Card) : null,
+  }));
+}
+
 export function getCard(handle: string): Card | null {
   const row = db
     .prepare("SELECT * FROM cards WHERE handle = ?")
@@ -172,7 +252,7 @@ export interface SubmitInput {
   listed: boolean;
 }
 
-export function createPendingCard(input: SubmitInput): Card {
+export function createPendingCard(input: SubmitInput, actor: string): Card {
   const now = Date.now();
   const handle = input.handle.toLowerCase();
   const token = crypto.randomBytes(16).toString("hex");
@@ -191,14 +271,20 @@ export function createPendingCard(input: SubmitInput): Card {
     now,
     now
   );
-  return getCard(handle)!;
+  const card = getCard(handle)!;
+  logEvent(handle, "create", actor, null, card);
+  return card;
 }
 
 export type CardEdits = Partial<
   Pick<Card, "displayName" | "description" | "avatarUrl" | "swapcardUrl">
 >;
 
-export function updateCardFields(handle: string, edits: CardEdits): Card | null {
+export function updateCardFields(
+  handle: string,
+  edits: CardEdits,
+  actor: string
+): Card | null {
   const existing = getCard(handle);
   if (!existing) return null;
   const now = Date.now();
@@ -214,10 +300,16 @@ export function updateCardFields(handle: string, edits: CardEdits): Card | null 
     now,
     handle.toLowerCase()
   );
-  return getCard(handle);
+  const after = getCard(handle);
+  if (after) logEvent(handle, "update", actor, existing, after);
+  return after;
 }
 
-export function approveCard(handle: string, edits?: CardEdits): Card | null {
+export function approveCard(
+  handle: string,
+  actor: string,
+  edits?: CardEdits
+): Card | null {
   const existing = getCard(handle);
   if (!existing) return null;
   const now = Date.now();
@@ -234,14 +326,22 @@ export function approveCard(handle: string, edits?: CardEdits): Card | null {
     now,
     handle.toLowerCase()
   );
-  return getCard(handle);
+  const after = getCard(handle);
+  if (after) logEvent(handle, "approve", actor, existing, after);
+  return after;
 }
 
-export function deleteCard(handle: string): boolean {
+export function deleteCard(handle: string, actor: string): boolean {
+  const existing = getCard(handle);
+  if (!existing) return false;
   const res = db
     .prepare("DELETE FROM cards WHERE handle = ?")
     .run(handle.toLowerCase());
-  return res.changes > 0;
+  if (res.changes > 0) {
+    logEvent(handle, "delete", actor, existing, null);
+    return true;
+  }
+  return false;
 }
 
 export function setAccentColor(
@@ -262,7 +362,8 @@ export function setVerified(handle: string, twitterId: string): void {
 }
 
 export function createVerifiedApprovedCard(
-  input: SubmitInput & { twitterId: string }
+  input: SubmitInput & { twitterId: string },
+  actor: string
 ): Card {
   const now = Date.now();
   const handle = input.handle.toLowerCase();
@@ -288,7 +389,9 @@ export function createVerifiedApprovedCard(
     now,
     now
   );
-  return getCard(handle)!;
+  const card = getCard(handle)!;
+  logEvent(handle, "create_verified", actor, null, card);
+  return card;
 }
 
 export default db;

@@ -72,26 +72,37 @@ export async function POST(req: NextRequest) {
     req.headers.get("x-real-ip") ||
     null;
 
+  const actor =
+    isVerifiedForHandle && session
+      ? `verified:${session.twitterId}`
+      : `anon:${ip ?? "?"}`;
+
   const card = isVerifiedForHandle && session
-    ? createVerifiedApprovedCard({
-        handle,
-        displayName,
-        description,
-        avatarUrl,
-        swapcardUrl,
-        submitterIp: ip,
-        listed,
-        twitterId: session.twitterId,
-      })
-    : createPendingCard({
-        handle,
-        displayName,
-        description,
-        avatarUrl,
-        swapcardUrl,
-        submitterIp: ip,
-        listed,
-      });
+    ? createVerifiedApprovedCard(
+        {
+          handle,
+          displayName,
+          description,
+          avatarUrl,
+          swapcardUrl,
+          submitterIp: ip,
+          listed,
+          twitterId: session.twitterId,
+        },
+        actor
+      )
+    : createPendingCard(
+        {
+          handle,
+          displayName,
+          description,
+          avatarUrl,
+          swapcardUrl,
+          submitterIp: ip,
+          listed,
+        },
+        actor
+      );
 
   if (avatarUrl) {
     const accent = await extractAccentColor(avatarUrl).catch(() => null);

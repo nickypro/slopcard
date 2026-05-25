@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import SlopCard from "@/components/SlopCard";
 import { getCard } from "@/lib/db";
 import { normalizeHandle } from "@/lib/handle";
+import { getUserSession } from "@/lib/session";
 
 interface Props {
   params: Promise<{ handle: string }>;
@@ -38,12 +39,21 @@ export default async function HandleProfile({ params }: Props) {
   const card = getCard(normalizeHandle(handle));
   if (!card || card.status !== "approved") notFound();
 
+  const session = await getUserSession();
+  const isOwner =
+    !!session && session.twitterHandle.toLowerCase() === card.handle;
+
   return (
     <main className="container">
       <div className="card-wrap">
         <SlopCard card={card} />
       </div>
       <p style={{ textAlign: "center", marginTop: "1.5rem" }}>
+        {isOwner ? (
+          <a href="/edit" className="btn ghost" style={{ marginRight: "0.6rem" }}>
+            ✏ edit my card
+          </a>
+        ) : null}
         <a href="/submit" className="muted" style={{ fontSize: "0.9rem" }}>
           ← make your own slopcard
         </a>

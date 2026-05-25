@@ -14,7 +14,7 @@ export async function POST(req: NextRequest) {
   if (!handle) {
     return NextResponse.json({ error: "missing handle" }, { status: 400 });
   }
-  const card = approveCard(handle);
+  const card = approveCard(handle, "admin");
   if (!card) {
     return NextResponse.json({ error: "not found" }, { status: 404 });
   }

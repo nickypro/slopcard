@@ -21,6 +21,6 @@ export async function POST(req: NextRequest) {
       { status: 400 }
     );
   }
-  deleteCard(handle);
+  deleteCard(handle, "admin");
   return NextResponse.redirect(siteUrl("/admin"));
 }

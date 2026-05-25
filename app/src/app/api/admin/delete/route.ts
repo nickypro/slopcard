@@ -15,6 +15,6 @@ export async function POST(req: NextRequest) {
   if (!card) {
     return NextResponse.json({ error: "not found" }, { status: 404 });
   }
-  deleteCard(handle);
+  deleteCard(handle, "admin");
   return NextResponse.redirect(siteUrl("/admin"));
 }

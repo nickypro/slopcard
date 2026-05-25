@@ -33,9 +33,9 @@ export default async function AdminEditPage({ params }: Props) {
     };
     const approve = formData.get("approve") === "1";
     if (approve) {
-      approveCard(handle, edits);
+      approveCard(handle, "admin", edits);
     } else {
-      updateCardFields(handle, edits);
+      updateCardFields(handle, edits, "admin");
     }
     setListed(handle, formData.get("listed") === "on");
     // Re-extract accent color if the avatar URL changed.
