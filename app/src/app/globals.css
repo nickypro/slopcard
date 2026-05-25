@@ -357,6 +357,14 @@ button[disabled] {
   font-size: 0.95rem;
   margin: 0.15rem 0 0.9rem;
 }
+.slopcard__handle-link {
+  color: inherit;
+  text-decoration: none;
+}
+.slopcard__handle-link:hover {
+  color: var(--ink-2);
+  text-decoration: underline;
+}
 .slopcard__bio {
   font-style: italic;
   color: var(--ink-2);

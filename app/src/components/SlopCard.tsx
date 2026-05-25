@@ -51,7 +51,16 @@ export default function SlopCard({ card, stats }: Props) {
         <h2 className="slopcard__name">
           {card.displayName || `@${card.handle}`}
         </h2>
-        <p className="slopcard__handle">{`@${card.handle}`}</p>
+        <p className="slopcard__handle">
+          <a
+            href={`https://x.com/${card.handle}`}
+            target="_blank"
+            rel="noreferrer"
+            className="slopcard__handle-link"
+          >
+            {`@${card.handle}`}
+          </a>
+        </p>
         {card.description ? (
           <p className="slopcard__bio">{card.description}</p>
         ) : null}
