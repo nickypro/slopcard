@@ -7,7 +7,7 @@ import {
 } from "@/lib/db";
 import { getUserSession } from "@/lib/session";
 import { extractAccentColor } from "@/lib/color";
-import { isValidSwapcardUrl } from "@/lib/handle";
+import { isValidSwapcardUrl, normalizeBio } from "@/lib/handle";
 import { siteUrl } from "@/lib/urls";
 
 export const dynamic = "force-dynamic";
@@ -45,7 +45,10 @@ export async function POST(req: NextRequest) {
   }
 
   const displayName = String(form.get("displayName") || "").slice(0, 80);
-  const description = String(form.get("description") || "").slice(0, 280);
+  const description = normalizeBio(String(form.get("description") || "")).slice(
+    0,
+    280
+  );
   const avatarUrl = String(form.get("avatarUrl") || "").slice(0, 500);
   const swapcardUrl = String(form.get("swapcardUrl") || "").trim();
   const listed = form.get("listed") === "on";

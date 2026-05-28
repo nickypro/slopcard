@@ -8,6 +8,7 @@ import {
 import {
   isValidHandle,
   isValidSwapcardUrl,
+  normalizeBio,
   normalizeHandle,
 } from "@/lib/handle";
 import { extractAccentColor } from "@/lib/color";
@@ -62,7 +63,7 @@ export async function POST(req: NextRequest) {
   }
 
   const displayName = String(body.displayName || "").slice(0, 80);
-  const description = String(body.description || "").slice(0, 280);
+  const description = normalizeBio(String(body.description || "")).slice(0, 280);
   const avatarUrl = String(body.avatarUrl || "").slice(0, 500);
   // listed defaults to true; only false if explicitly opted out.
   const listed = body.listed === false ? false : true;

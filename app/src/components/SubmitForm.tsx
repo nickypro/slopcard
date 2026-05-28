@@ -7,6 +7,22 @@ interface MeResp {
   twitterHandle?: string;
 }
 
+interface InitialCard {
+  handle: string;
+  displayName: string;
+  description: string;
+  avatarUrl: string;
+  swapcardUrl: string;
+  listed: boolean;
+}
+
+interface Props {
+  /** If provided, the form is in edit mode — fields prefilled, POSTs to /api/edit. */
+  initialCard?: InitialCard | null;
+  /** The verified-X handle, if any. Comes from the server-side session. */
+  verifiedHandle?: string | null;
+}
+
 const DRAFT_KEY = "slopcard:draft:v1";
 
 interface Draft {
@@ -46,59 +62,68 @@ function clearDraft() {
   }
 }
 
-export default function SubmitForm() {
-  const [me, setMe] = useState<MeResp | null>(null);
-  const [handle, setHandle] = useState("");
-  const [displayName, setDisplayName] = useState("");
-  const [description, setDescription] = useState("");
-  const [avatarUrl, setAvatarUrl] = useState("");
-  const [swapcardUrl, setSwapcardUrl] = useState("");
-  const [listed, setListed] = useState(true);
+export default function SubmitForm({
+  initialCard = null,
+  verifiedHandle = null,
+}: Props) {
+  const isEdit = !!initialCard;
+  const [me, setMe] = useState<MeResp | null>(
+    verifiedHandle
+      ? { signedIn: true, twitterHandle: verifiedHandle }
+      : null
+  );
+  const [handle, setHandle] = useState(
+    initialCard?.handle || verifiedHandle || ""
+  );
+  const [displayName, setDisplayName] = useState(initialCard?.displayName || "");
+  const [description, setDescription] = useState(
+    initialCard?.description || ""
+  );
+  const [avatarUrl, setAvatarUrl] = useState(initialCard?.avatarUrl || "");
+  const [swapcardUrl, setSwapcardUrl] = useState(initialCard?.swapcardUrl || "");
+  const [listed, setListed] = useState(
+    initialCard ? initialCard.listed : true
+  );
   const [fetching, setFetching] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [verifiedAutoFetched, setVerifiedAutoFetched] = useState(false);
   const draftHydrated = useRef(false);
 
-  // Hydrate from localStorage on first mount, before /api/me settles.
+  // Hydrate from localStorage on first mount — only in create mode.
   useEffect(() => {
+    if (isEdit) {
+      draftHydrated.current = true;
+      return;
+    }
     const d = loadDraft();
-    if (d.handle) setHandle(d.handle);
+    if (d.handle && !verifiedHandle) setHandle(d.handle);
     if (d.displayName) setDisplayName(d.displayName);
     if (d.description) setDescription(d.description);
     if (d.avatarUrl) setAvatarUrl(d.avatarUrl);
     if (d.swapcardUrl) setSwapcardUrl(d.swapcardUrl);
     if (typeof d.listed === "boolean") setListed(d.listed);
     draftHydrated.current = true;
-  }, []);
+  }, [isEdit, verifiedHandle]);
 
-  // Load session. Verified handle overrides whatever the draft had.
+  // If we didn't already get the session from server props, fetch it.
   useEffect(() => {
+    if (me) return;
     fetch("/api/me")
       .then((r) => r.json())
       .then((data: MeResp) => {
         setMe(data);
-        if (data.signedIn && data.twitterHandle) {
+        if (!isEdit && data.signedIn && data.twitterHandle && !handle) {
           setHandle(data.twitterHandle);
         }
       })
       .catch(() => setMe({ signedIn: false }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Persist on every change (after hydration).
+  // Auto-fetch twitter profile for verified users in CREATE mode.
   useEffect(() => {
-    if (!draftHydrated.current) return;
-    saveDraft({
-      handle: me?.signedIn ? undefined : handle,
-      displayName,
-      description,
-      avatarUrl,
-      swapcardUrl,
-      listed,
-    });
-  }, [handle, displayName, description, avatarUrl, swapcardUrl, listed, me]);
-
-  useEffect(() => {
+    if (isEdit) return;
     if (
       me?.signedIn &&
       me.twitterHandle &&
@@ -111,10 +136,27 @@ export default function SubmitForm() {
       doFetch(me.twitterHandle);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [me, verifiedAutoFetched]);
+  }, [me, verifiedAutoFetched, isEdit]);
 
-  const verifiedHandle = me?.signedIn ? me.twitterHandle : null;
-  const normHandle = (verifiedHandle || handle.replace(/^@/, "")).trim();
+  // Persist draft (create mode only).
+  useEffect(() => {
+    if (isEdit || !draftHydrated.current) return;
+    saveDraft({
+      handle: me?.signedIn ? undefined : handle,
+      displayName,
+      description,
+      avatarUrl,
+      swapcardUrl,
+      listed,
+    });
+  }, [handle, displayName, description, avatarUrl, swapcardUrl, listed, me, isEdit]);
+
+  const lockedHandle = isEdit
+    ? initialCard!.handle
+    : me?.signedIn
+    ? me.twitterHandle
+    : null;
+  const normHandle = (lockedHandle || handle.replace(/^@/, "")).trim();
 
   async function doFetch(h: string) {
     if (!h) return;
@@ -142,29 +184,49 @@ export default function SubmitForm() {
     setSubmitting(true);
     setError(null);
     try {
-      const res = await fetch("/api/submit", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          handle: normHandle,
-          displayName,
-          description,
-          avatarUrl,
-          swapcardUrl,
-          listed,
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        setError(data.error || "submit failed");
-      } else {
-        clearDraft();
-        if (data.autoApproved) {
-          window.location.href = `/${encodeURIComponent(data.handle)}`;
+      if (isEdit) {
+        const form = new FormData();
+        form.set("displayName", displayName);
+        form.set("description", description);
+        form.set("avatarUrl", avatarUrl);
+        form.set("swapcardUrl", swapcardUrl);
+        if (listed) form.set("listed", "on");
+        const res = await fetch("/api/edit", {
+          method: "POST",
+          body: form,
+          redirect: "manual",
+        });
+        if (res.status === 0 || res.status >= 300) {
+          // server redirects on success too; in either case, refresh the page
+          window.location.href = "/submit?saved=1";
         } else {
-          window.location.href = `/thanks?token=${encodeURIComponent(
-            data.token
-          )}&handle=${encodeURIComponent(data.handle)}`;
+          window.location.reload();
+        }
+      } else {
+        const res = await fetch("/api/submit", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            handle: normHandle,
+            displayName,
+            description,
+            avatarUrl,
+            swapcardUrl,
+            listed,
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          setError(data.error || "submit failed");
+        } else {
+          clearDraft();
+          if (data.autoApproved) {
+            window.location.href = `/${encodeURIComponent(data.handle)}`;
+          } else {
+            window.location.href = `/thanks?token=${encodeURIComponent(
+              data.token
+            )}&handle=${encodeURIComponent(data.handle)}`;
+          }
         }
       }
     } catch {
@@ -178,7 +240,7 @@ export default function SubmitForm() {
     <form onSubmit={submit}>
       <div className="row">
         <label htmlFor="handle">twitter handle</label>
-        {verifiedHandle ? (
+        {lockedHandle ? (
           <div
             style={{
               display: "flex",
@@ -190,9 +252,9 @@ export default function SubmitForm() {
               padding: "0.65rem 0.85rem",
             }}
           >
-            <strong>@{verifiedHandle}</strong>
+            <strong>@{lockedHandle}</strong>
             <span className="tag approved" style={{ marginLeft: "auto" }}>
-              ✓ verified — auto-approve
+              {isEdit ? "✓ editing your card" : "✓ verified — auto-approve"}
             </span>
           </div>
         ) : (
@@ -252,6 +314,9 @@ export default function SubmitForm() {
           onChange={(e) => setDescription(e.target.value.slice(0, 280))}
           maxLength={280}
         />
+        <p className="muted" style={{ fontSize: "0.78rem", margin: "0.25rem 0 0" }}>
+          line breaks are preserved (italic on the card).
+        </p>
       </div>
 
       <div className="row">
@@ -339,8 +404,10 @@ export default function SubmitForm() {
           disabled={submitting || !normHandle || !swapcardUrl}
         >
           {submitting
-            ? "submitting…"
-            : verifiedHandle
+            ? "saving…"
+            : isEdit
+            ? "save changes"
+            : lockedHandle
             ? "publish my slopcard"
             : "submit for review"}
         </button>

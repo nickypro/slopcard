@@ -372,6 +372,9 @@ button[disabled] {
   line-height: 1.45;
   margin: 0 0 1.25rem;
   min-height: 1.4em;
+  /* preserve author newlines, collapse runs of horizontal whitespace */
+  white-space: pre-line;
+  word-break: break-word;
 }
 
 .slopcard__stats {

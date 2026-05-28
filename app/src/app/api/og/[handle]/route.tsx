@@ -1,4 +1,6 @@
 import { ImageResponse } from "next/og";
+import { readFile } from "fs/promises";
+import path from "path";
 import { getCard } from "@/lib/db";
 import { normalizeHandle } from "@/lib/handle";
 
@@ -7,6 +9,44 @@ export const dynamic = "force-dynamic";
 
 interface RouteCtx {
   params: Promise<{ handle: string }>;
+}
+
+// Satori's bundled Inter font only covers Latin and lacks ♡, ★, etc. We
+// ship Noto Sans (Latin + Bold) plus Noto Sans Symbols 2 (for misc symbols)
+// in app/public/fonts/ and load them once per cold start.
+
+interface SatoriFont {
+  name: string;
+  data: Buffer;
+  weight: 400 | 700;
+  style: "normal";
+}
+
+let fontsPromise: Promise<SatoriFont[] | null> | null = null;
+
+function getFonts(): Promise<SatoriFont[] | null> {
+  if (fontsPromise) return fontsPromise;
+  const dir = path.join(process.cwd(), "public", "fonts");
+  fontsPromise = (async () => {
+    try {
+      const [reg, bold, sym] = await Promise.all([
+        readFile(path.join(dir, "NotoSans-Regular.ttf")),
+        readFile(path.join(dir, "NotoSans-Bold.ttf")),
+        readFile(path.join(dir, "NotoSansSymbols2-Regular.ttf")),
+      ]);
+      return [
+        { name: "NotoSans", data: reg, weight: 400, style: "normal" },
+        { name: "NotoSans", data: bold, weight: 700, style: "normal" },
+        // Symbols2 contains ♡ ★ etc. Registered under a SEPARATE family so
+        // we can put it in the fontFamily fallback chain — Satori is more
+        // reliable falling through families than weights within one family.
+        { name: "NotoSansSymbols", data: sym, weight: 400, style: "normal" },
+      ];
+    } catch {
+      return null;
+    }
+  })();
+  return fontsPromise;
 }
 
 export async function GET(_req: Request, { params }: RouteCtx) {
@@ -22,6 +62,8 @@ export async function GET(_req: Request, { params }: RouteCtx) {
     card.avatarUrl || `https://unavatar.io/twitter/${card.handle}`;
   const accent = card.accentColor || "#e07a5f";
 
+  const fonts = await getFonts();
+
   return new ImageResponse(
     (
       <div
@@ -34,7 +76,7 @@ export async function GET(_req: Request, { params }: RouteCtx) {
           background: "#d4b894",
           backgroundImage:
             "radial-gradient(at 20% 0%, rgba(255,250,240,0.25), transparent 55%), radial-gradient(at 100% 100%, rgba(46,31,18,0.18), transparent 55%)",
-          fontFamily: "sans-serif",
+          fontFamily: "NotoSans, NotoSansSymbols, sans-serif",
         }}
       >
         <div
@@ -51,7 +93,6 @@ export async function GET(_req: Request, { params }: RouteCtx) {
             overflow: "hidden",
           }}
         >
-          {/* gradient banner */}
           <div
             style={{
               display: "flex",
@@ -70,8 +111,6 @@ export async function GET(_req: Request, { params }: RouteCtx) {
             <span>★</span>
             <span>v1</span>
           </div>
-
-          {/* body */}
           <div
             style={{
               display: "flex",
@@ -119,6 +158,9 @@ export async function GET(_req: Request, { params }: RouteCtx) {
             {bio ? (
               <div
                 style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
                   fontSize: 24,
                   fontStyle: "italic",
                   textAlign: "center",
@@ -127,12 +169,14 @@ export async function GET(_req: Request, { params }: RouteCtx) {
                   lineHeight: 1.35,
                 }}
               >
-                {bio.length > 160 ? bio.slice(0, 157) + "…" : bio}
+                {(bio.length > 220 ? bio.slice(0, 217) + "…" : bio)
+                  .split("\n")
+                  .map((line, i) => (
+                    <div key={i}>{line || " "}</div>
+                  ))}
               </div>
             ) : null}
           </div>
-
-          {/* footer */}
           <div
             style={{
               display: "flex",
@@ -153,6 +197,10 @@ export async function GET(_req: Request, { params }: RouteCtx) {
     {
       width: 1200,
       height: 630,
+      ...(fonts ? { fonts } : {}),
+      // Twemoji covers most misc symbols (♡ ♥ ★ ☆ ✦ …) as SVGs; Satori
+      // falls back to it for glyphs the registered fonts lack.
+      emoji: "twemoji",
     }
   );
 }

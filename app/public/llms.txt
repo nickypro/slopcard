@@ -1,0 +1,17 @@
+# slopcard
+
+> slopcard is a tiny site that turns a Twitter/X profile into a public "slopcard" — a little card with the person's display name, bio, avatar, and a link to their Swapcard profile (originally for EAG London attendees). Cards live at slopcard.org/<handle>. The public grid at slopcard.org shows all listed approved cards.
+
+## What's here
+
+- [/](https://slopcard.org/): public grid of all listed slopcards
+- [/submit](https://slopcard.org/submit): create a new slopcard (sign in with X for auto-approval) or edit yours if you already have one
+- [/<handle>](https://slopcard.org/cutesuscat): a person's slopcard, including their bio and a button to open their Swapcard profile
+- [/sitemap.xml](https://slopcard.org/sitemap.xml): machine-readable list of all approved card URLs
+
+## How submissions work
+
+- Anyone can submit a card; it sits in a pending queue and is reviewed manually by the site admin.
+- Users who sign in with X (Twitter OAuth 2.0) can submit a card for their own handle and have it auto-approved.
+- Verified owners can edit or delete their own card at any time.
+- All changes are recorded in an append-only audit log so history is preserved.

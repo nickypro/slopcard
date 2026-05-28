@@ -32,3 +32,10 @@ export function isValidSwapcardUrl(s: string): boolean {
     return false;
   }
 }
+
+// Keep author-intended newlines (single line break, blank line) but collapse
+// runs of 3+ consecutive newlines down to 2 so a card can't be stretched
+// into an absurd vertical wall. Also trims trailing whitespace.
+export function normalizeBio(s: string): string {
+  return s.replace(/\r\n/g, "\n").replace(/\n{3,}/g, "\n\n").trim();
+}
