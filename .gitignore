@@ -8,3 +8,9 @@ data/
 .DS_Store
 .idea/
 .vscode/
+app.swapcard.com.har
+swapcard-events.har
+*.har
+tsconfig.tsbuildinfo
+.claude/
+app/coverage/

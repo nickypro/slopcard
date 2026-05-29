@@ -518,3 +518,112 @@ button[disabled] {
   background: #dcefdc;
   color: var(--ok);
 }
+
+/* ------------------------------------------------------------------- */
+/* /agenda calendar view                                                  */
+/* ------------------------------------------------------------------- */
+
+/* Desktop-first: show the timeline calendar grid, hide the list. */
+.agenda-calendar {
+  display: block;
+}
+.agenda-list {
+  display: none;
+}
+.agenda-block:hover {
+  filter: brightness(1.05);
+  text-decoration: none;
+  box-shadow: 0 2px 8px -2px rgba(46, 31, 18, 0.25);
+}
+.agenda-block:focus-visible {
+  outline: 2px solid var(--coral-strong);
+  outline-offset: 1px;
+}
+
+/* Mobile: hide the (unusable at phone width) calendar grid, show the
+   list. The breakpoint matches the existing mobile pass below — below
+   641px we collapse to a vertical list of session detail cards. */
+@media (max-width: 640px) {
+  .agenda-calendar {
+    display: none;
+  }
+  .agenda-list {
+    display: block;
+  }
+  /* Detail-toggle is redundant on mobile since the full list is already
+     shown above — hide to keep the page from rendering duplicates. */
+  .agenda-detail-toggle {
+    display: none;
+  }
+}
+
+/* ── Mobile responsive pass ─────────────────────────────────────────────
+   Cards-and-discover layout is desktop-first; below 640px we shrink
+   padding, stack flex rows, enforce minimum touch-target sizes, and let
+   long words wrap so bios don't overflow viewport. Targets the iPhone SE
+   width (375px) as the lower bound. */
+@media (max-width: 640px) {
+  .container {
+    padding: 1.5rem 0.9rem 4rem;
+  }
+  .title {
+    font-size: 1.7rem;
+  }
+  .dashboard-header {
+    flex-direction: column;
+    align-items: stretch;
+    margin-bottom: 1.25rem;
+  }
+  .dashboard-header > div:last-child {
+    /* CTA stack on the homepage — buttons fill the row */
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  .dashboard-header .btn {
+    width: 100%;
+    text-align: center;
+  }
+  .panel {
+    padding: 1rem 0.85rem;
+  }
+  /* 44px hit area on touch */
+  .btn {
+    min-height: 2.75rem;
+    padding-top: 0.65rem;
+    padding-bottom: 0.65rem;
+  }
+  /* Long words / bios don't bust the viewport */
+  .panel p,
+  .panel li,
+  .panel blockquote {
+    overflow-wrap: anywhere;
+  }
+  .card-grid {
+    grid-template-columns: 1fr;
+    gap: 1.25rem;
+  }
+  .rec-card-header {
+    flex-direction: column;
+    align-items: flex-start !important;
+  }
+  .rec-card-header .rec-meta {
+    margin-top: 0.25rem;
+  }
+  .discover-controls .preset-row {
+    /* Presets become horizontally scrollable instead of wrapping into 4
+       rows — preserves the 'quick pick' affordance on narrow screens. */
+    flex-wrap: nowrap !important;
+    overflow-x: auto;
+    margin-left: -0.85rem;
+    margin-right: -0.85rem;
+    padding: 0 0.85rem 0.25rem;
+    scrollbar-width: thin;
+  }
+  .discover-controls .preset-row .btn {
+    flex-shrink: 0;
+  }
+  .phase-tracker {
+    font-size: 0.8rem !important;
+  }
+}

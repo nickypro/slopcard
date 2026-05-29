@@ -43,8 +43,8 @@ export default async function SubmitPage({ searchParams }: Props) {
       </h1>
       <p className="subtitle">
         {isEdit
-          ? "changes save immediately and are recorded in the audit log."
-          : "sign in with X to skip the approval queue, or submit anonymously for manual review."}
+          ? "changes save immediately. you can also delete your card below — your link + discover access aren't affected."
+          : "completely optional — a public profile card shown on the homepage. /discover and /agenda work without it. sign in with X to skip the approval queue, or submit anonymously for manual review."}
       </p>
       {saved ? <p className="ok">✓ saved.</p> : null}
       {signed_in ? (
